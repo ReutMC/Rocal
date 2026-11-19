@@ -1,0 +1,18 @@
+{
+  "App_Tagline": "فضای کاری خصوصی روی شبکه محلی",
+  "Nav_Home": "خانه",
+  "Nav_Devices": "دستگاه‌ها",
+  "Nav_Files": "اشتراک‌گذاری فایل",
+  "Nav_Messages": "پیام‌ها",
+  "Nav_Remote": "دسکتاپ از راه دور",
+  "Nav_Settings": "تنظیمات",
+  "Home_ComputerName": "این رایانه",
+  "Home_LocalIp": "نشانی IP محلی",
+  "Home_NetworkStatus": "شبکه محلی",
+  "Home_Connected": "متصل",
+  "Home_NoNetwork": "شبکه محلی پیدا نشد",
+  "Home_Refresh": "بازخوانی",
+  "Settings_Language": "زبان",
+  "Settings_LanguageHint": "زبان رابط کاربری روکال. با انتخاب فارسی، کل چیدمان راست‌به‌چپ می‌شود.",
+  "ComingSoon_Text": "این قابلیت برای مرحله {0} برنامه‌ریزی شده و هنوز در دسترس نیست."
+}

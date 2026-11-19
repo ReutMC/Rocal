@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # required only to create the GitHub Release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract and validate version from tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?)$') {
+            throw "Tag '$tag' is not a valid version tag (expected vX.Y.Z or vX.Y.Z-suffix)."
+          }
+          "TAG=$tag" >> $env:GITHUB_ENV
+          "VERSION=$($Matches[1])" >> $env:GITHUB_ENV
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Rocal.slnx
+
+      - name: Test
+        run: dotnet test Rocal.slnx -c Release
+
+      - name: Publish self-contained win-x64
+        run: dotnet publish src/Rocal.App/Rocal.App.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o artifacts/publish
+
+      - name: Portable ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Compress-Archive -Path artifacts/publish/* -DestinationPath "release/Rocal-$env:TAG-win-x64-portable.zip"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\artifacts\publish" "/DOutputDir=$PWD\release" "/DOutputName=Rocal-$env:TAG-win-x64-setup" installer\Rocal.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+
+      - name: SHA-256 checksums
+        shell: pwsh
+        run: |
+          Set-Location release
+          Get-ChildItem -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          } | Set-Content -Encoding ascii SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $files = Get-ChildItem release -File | ForEach-Object { $_.FullName }
+          $extra = @()
+          if ($env:TAG -match '-') { $extra += '--prerelease' }
+          gh release create $env:TAG @files --title "Rocal $env:TAG" --generate-notes @extra
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }

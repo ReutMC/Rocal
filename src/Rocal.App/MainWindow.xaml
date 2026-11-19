@@ -1,0 +1,60 @@
+<Window x:Class="Rocal.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rocal" Width="1120" Height="720" MinWidth="880" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI, Tahoma"
+        FlowDirection="{Binding Loc.FlowDirection}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="256" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Margin="12" Padding="14" Style="{StaticResource Card}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="0,4,0,20">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="40" Height="40" CornerRadius="12" Background="{StaticResource PrimaryBrush}">
+                            <TextBlock Text="R" Foreground="White" FontSize="22" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="Rocal" FontSize="22" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="12,0" />
+                    </Grid>
+                    <TextBlock Text="{Binding Loc[App_Tagline]}" Style="{StaticResource Label}"
+                               TextWrapping="Wrap" Margin="0,10,0,0" />
+                </StackPanel>
+
+                <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
+                         Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource NavItemStyle}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="16" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="14"
+                                           VerticalAlignment="Center" Margin="4,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Page content: the matching DataTemplate in Views/PageTemplates.xaml is picked by view-model type -->
+        <ContentControl Grid.Column="1" Margin="12,24,28,24" Content="{Binding SelectedPage}" />
+    </Grid>
+</Window>

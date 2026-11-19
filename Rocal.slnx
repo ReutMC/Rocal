@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Rocal.App/Rocal.App.csproj" />
+    <Project Path="src/Rocal.Core/Rocal.Core.csproj" />
+    <Project Path="src/Rocal.Networking/Rocal.Networking.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Rocal.Core.Tests/Rocal.Core.Tests.csproj" />
+  </Folder>
+</Solution>

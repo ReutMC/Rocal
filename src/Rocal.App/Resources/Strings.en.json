@@ -1,0 +1,18 @@
+{
+  "App_Tagline": "Private workspace for your local network",
+  "Nav_Home": "Home",
+  "Nav_Devices": "Devices",
+  "Nav_Files": "File Sharing",
+  "Nav_Messages": "Messages",
+  "Nav_Remote": "Remote Desktop",
+  "Nav_Settings": "Settings",
+  "Home_ComputerName": "This computer",
+  "Home_LocalIp": "Local IP address",
+  "Home_NetworkStatus": "Local network",
+  "Home_Connected": "Connected",
+  "Home_NoNetwork": "No local network found",
+  "Home_Refresh": "Refresh",
+  "Settings_Language": "Language",
+  "Settings_LanguageHint": "Language of the Rocal interface. Persian switches the whole layout to right-to-left.",
+  "ComingSoon_Text": "This feature is planned for milestone {0} and is not available yet."
+}

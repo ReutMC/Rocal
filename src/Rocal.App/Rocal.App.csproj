@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Rocal</AssemblyName>
+    <RootNamespace>Rocal.App</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Rocal.Core\Rocal.Core.csproj" />
+    <ProjectReference Include="..\Rocal.Networking\Rocal.Networking.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- UI strings live in resource files, one per language: Strings.<code>.json -->
+    <EmbeddedResource Include="Resources\Strings.*.json" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
