@@ -7,6 +7,7 @@ namespace Rocal.App.Services;
 public sealed record AppSettings
 {
     public string Language { get; init; } = LocalizationService.English;
+    public bool OnboardingCompleted { get; init; }
 }
 
 /// <summary>Persists non-sensitive application settings to %AppData%\Rocal\settings.json.</summary>

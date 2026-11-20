@@ -22,12 +22,15 @@ public partial class App : Application
             {
                 services.AddSingleton<SettingsService>();
                 services.AddSingleton<LocalizationService>();
+                services.AddSingleton<NavigationService>();
+                services.AddSingleton<OnboardingViewModel>();
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
             })
             .Build();
         await _host.StartAsync();
 
+        // Settings and language must be ready before any view model is created.
         var settings = _host.Services.GetRequiredService<SettingsService>();
         settings.Load();
         _host.Services.GetRequiredService<LocalizationService>().SetLanguage(settings.Current.Language);
