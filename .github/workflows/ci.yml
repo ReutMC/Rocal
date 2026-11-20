@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write   # only used to post a failure summary on pull requests
 
 jobs:
   build:
@@ -23,13 +24,40 @@ jobs:
         run: dotnet restore Rocal.slnx
 
       - name: Build (Release)
-        run: dotnet build Rocal.slnx -c Release --no-restore
+        shell: pwsh
+        run: |
+          dotnet build Rocal.slnx -c Release --no-restore 2>&1 | Tee-Object -FilePath build.log
+          exit $LASTEXITCODE
 
       - name: Test
-        run: dotnet test Rocal.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+        shell: pwsh
+        run: |
+          dotnet test Rocal.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults 2>&1 | Tee-Object -FilePath test.log
+          exit $LASTEXITCODE
 
       - name: Publish win-x64
         run: dotnet publish src/Rocal.App/Rocal.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish
+
+      - name: Post failure summary on the pull request
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $lines = @()
+          foreach ($f in 'build.log', 'test.log') {
+            if (Test-Path $f) {
+              $e = Select-String -Path $f -Pattern 'error |warning CS|NU[0-9]{4}|MSB[0-9]{4}|Failed ' |
+                ForEach-Object { $_.Line.Trim() } | Select-Object -Unique -First 30
+              if ($e) { $lines += "**$f**"; $lines += '```'; $lines += $e; $lines += '```' }
+            }
+          }
+          if (-not $lines) { $lines = @('No error lines captured; see the workflow run.') }
+          $run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $body = (@('## CI failure summary', '') + $lines + @('', "Run: $run")) -join "`n"
+          $body | Set-Content -Encoding utf8 ci-failure.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file ci-failure.md
 
       - name: Upload test results
         if: always()
@@ -37,6 +65,7 @@ jobs:
         with:
           name: test-results
           path: TestResults
+          if-no-files-found: ignore
 
       - name: Upload build
         uses: actions/upload-artifact@v4

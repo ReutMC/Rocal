@@ -7,11 +7,15 @@ namespace Rocal.App.ViewModels;
 
 public sealed partial class HomeViewModel : PageViewModel
 {
+    private readonly NavigationService _navigation;
+
     [ObservableProperty] private string _localAddress = "-";
     [ObservableProperty] private bool _isNetworkAvailable;
 
-    public HomeViewModel(LocalizationService loc) : base(loc, "Nav_Home", "\uE80F")
+    public HomeViewModel(LocalizationService loc, NavigationService navigation)
+        : base(PageId.Home, loc, "Nav_Home", "\uE80F")
     {
+        _navigation = navigation;
         Refresh();
     }
 
@@ -27,4 +31,7 @@ public sealed partial class HomeViewModel : PageViewModel
         LocalAddress = primary?.Address.ToString() ?? "-";
         OnPropertyChanged(nameof(NetworkStatusText));
     }
+
+    [RelayCommand]
+    private void Navigate(PageId id) => _navigation.Navigate(id);
 }

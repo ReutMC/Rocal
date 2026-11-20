@@ -8,8 +8,9 @@ public abstract class PageViewModel : ObservableObject
 {
     private readonly string _titleKey;
 
-    protected PageViewModel(LocalizationService loc, string titleKey, string glyph)
+    protected PageViewModel(PageId id, LocalizationService loc, string titleKey, string glyph)
     {
+        Id = id;
         Loc = loc;
         _titleKey = titleKey;
         Glyph = glyph;
@@ -18,6 +19,8 @@ public abstract class PageViewModel : ObservableObject
             if (e.PropertyName == "Item[]") OnPropertyChanged(string.Empty);
         };
     }
+
+    public PageId Id { get; }
 
     public LocalizationService Loc { get; }
 
