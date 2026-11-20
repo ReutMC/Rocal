@@ -1,11 +1,14 @@
 name: Release
 
+# Triggered by a version tag (vX.Y.Z) or by pushing a branch named release/vX.Y.Z.
+# In the branch case the workflow creates the tag itself when it creates the GitHub Release.
 on:
   push:
     tags: ['v*']
+    branches: ['release/v*']
 
 permissions:
-  contents: write   # required only to create the GitHub Release
+  contents: write   # required only to create the tag and the GitHub Release
 
 jobs:
   release:
@@ -13,12 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract and validate version from tag
+      - name: Extract and validate version
         shell: pwsh
         run: |
-          $tag = $env:GITHUB_REF_NAME
+          $ref = $env:GITHUB_REF_NAME
+          $tag = $ref -replace '^release/', ''
           if ($tag -notmatch '^v(\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?)$') {
-            throw "Tag '$tag' is not a valid version tag (expected vX.Y.Z or vX.Y.Z-suffix)."
+            throw "'$ref' does not name a valid version (expected vX.Y.Z or vX.Y.Z-suffix)."
           }
           "TAG=$tag" >> $env:GITHUB_ENV
           "VERSION=$($Matches[1])" >> $env:GITHUB_ENV
@@ -36,6 +40,15 @@ jobs:
       - name: Publish self-contained win-x64
         run: dotnet publish src/Rocal.App/Rocal.App.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:VERSION -o artifacts/publish
 
+      - name: Smoke test - published app starts and stays running
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path 'artifacts/publish/Rocal.exe').Path
+          $p = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { throw "Rocal.exe exited during startup (exit code $($p.ExitCode))." }
+          Stop-Process -Id $p.Id -Force
+
       - name: Portable ZIP
         shell: pwsh
         run: |
@@ -52,6 +65,25 @@ jobs:
           & $iscc "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\artifacts\publish" "/DOutputDir=$PWD\release" "/DOutputName=Rocal-$env:TAG-win-x64-setup" installer\Rocal.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
+      - name: Smoke test - installer installs, app starts, uninstall works
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem release -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'Installer was not produced.' }
+          $dir = Join-Path $PWD 'smoke-install'
+          $inst = Start-Process -FilePath $setup.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$dir" -Wait -PassThru
+          if ($inst.ExitCode -ne 0) { throw "Installer exited with code $($inst.ExitCode)." }
+          $installed = Join-Path $dir 'Rocal.exe'
+          if (-not (Test-Path $installed)) { throw 'Rocal.exe was not installed.' }
+          $p = Start-Process -FilePath $installed -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { throw "Installed Rocal.exe exited during startup (exit code $($p.ExitCode))." }
+          Stop-Process -Id $p.Id -Force
+          $un = Get-ChildItem $dir -Filter 'unins*.exe' | Select-Object -First 1
+          if (-not $un) { throw 'Uninstaller was not installed.' }
+          $r = Start-Process -FilePath $un.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($r.ExitCode -ne 0) { throw "Uninstaller exited with code $($r.ExitCode)." }
+
       - name: SHA-256 checksums
         shell: pwsh
         run: |
@@ -66,8 +98,35 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          $notes = @"
+          ## Rocal $env:TAG
+
+          **Early alpha.** This build contains the application shell only: navigation, the light-blue theme,
+          English and Persian (right-to-left) interface, the home page with local network status, settings and
+          a first-run tour.
+
+          **Not implemented yet:** device discovery, pairing, file transfer, chat, remote desktop and games.
+          Those pages say so in the app.
+
+          ### Install
+          - **Installer:** run the ``setup.exe`` (per-user install by default).
+          - **Portable:** extract the ZIP and run ``Rocal.exe``. No installation needed.
+          - Windows 10/11 x64. The .NET runtime is included.
+
+          ### Verify the download
+          Compare the SHA-256 of the file with ``SHA256SUMS.txt``:
+          ``Get-FileHash <file> -Algorithm SHA256``
+
+          The installer and executable are **not code-signed**, so Windows SmartScreen may show a warning.
+
+          ### Checks performed by this release workflow
+          Unit tests passed; the published app and the installed app each started and stayed running for 10 seconds;
+          the uninstaller ran successfully. The interface has not been manually reviewed on a physical PC.
+          "@
+          $notes | Set-Content -Encoding utf8 release-notes.md
+
           $files = Get-ChildItem release -File | ForEach-Object { $_.FullName }
           $extra = @()
-          if ($env:TAG -match '-') { $extra += '--prerelease' }
-          gh release create $env:TAG @files --title "Rocal $env:TAG" --generate-notes @extra
-          if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+          if ($env:VERSION -match '^0\.' -or $env:TAG -match '-') { $extra += '--prerelease' }
+          gh release create $env:TAG @files --title "Rocal $env:TAG" --notes-file release-notes.md --target $env:GITHUB_SHA @extra
+          if ($LASTEXITCODE -ne 0) { throw 'gh release create failed' }
